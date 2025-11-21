@@ -40,6 +40,12 @@ namespace ChatbotTCS.AdminAPI.Models
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
+        /// Contraseña del usuario
+        /// </summary>
+        [BsonElement("contraseña")]
+        public string Contraseña { get; set; } = string.Empty;
+
+        /// <summary>
         /// Teléfono del usuario
         /// </summary>
         [BsonElement("telefono")]
@@ -244,6 +250,12 @@ namespace ChatbotTCS.AdminAPI.Models
         /// </summary>
         [BsonElement("creadoPor")]
         public string CreadoPor { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Rol del usuario (Usuario o Administrador)
+        /// </summary>
+        [BsonElement("rol")]
+        public string Rol { get; set; } = "Usuario";
     }
 
     /// <summary>
