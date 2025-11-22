@@ -136,5 +136,11 @@ namespace ChatbotTCS.AdminAPI.Models
         /// </summary>
         [BsonElement("fechaCreacion")]
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Fecha de la actividad (manual)
+        /// </summary>
+        [BsonElement("fecha_de_actividad")]
+        public DateTime FechaDeActividad { get; set; }
     }
 }
