@@ -261,6 +261,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para la dirección del usuario
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Direccion
     {
         [BsonElement("calle")]
@@ -282,6 +283,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para la información del supervisor
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Supervisor
     {
         [BsonElement("nombre")]
@@ -300,6 +302,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para las preferencias del usuario
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Preferencias
     {
         [BsonElement("notificaciones")]
@@ -321,6 +324,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para las estadísticas del usuario
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Estadisticas
     {
         [BsonElement("mensajesEnviados")]
