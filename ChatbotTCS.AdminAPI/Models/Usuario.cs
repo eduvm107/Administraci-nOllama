@@ -256,11 +256,26 @@ namespace ChatbotTCS.AdminAPI.Models
         /// </summary>
         [BsonElement("rol")]
         public string Rol { get; set; } = "Usuario";
+
+        /// <summary>
+        /// Token para restablecer contraseña
+        /// </summary>
+        [BsonElement("resetPasswordToken")]
+        [BsonIgnoreIfNull]
+        public string? ResetPasswordToken { get; set; }
+
+        /// <summary>
+        /// Fecha de expiración del token de restablecimiento
+        /// </summary>
+        [BsonElement("resetPasswordExpires")]
+        [BsonIgnoreIfNull]
+        public DateTime? ResetPasswordExpires { get; set; }
     }
 
     /// <summary>
     /// Clase para la dirección del usuario
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Direccion
     {
         [BsonElement("calle")]
@@ -282,6 +297,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para la información del supervisor
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Supervisor
     {
         [BsonElement("nombre")]
@@ -300,6 +316,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para las preferencias del usuario
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Preferencias
     {
         [BsonElement("notificaciones")]
@@ -321,6 +338,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Clase para las estadísticas del usuario
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Estadisticas
     {
         [BsonElement("mensajesEnviados")]
