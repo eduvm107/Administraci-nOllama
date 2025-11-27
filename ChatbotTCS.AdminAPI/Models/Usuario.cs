@@ -256,6 +256,20 @@ namespace ChatbotTCS.AdminAPI.Models
         /// </summary>
         [BsonElement("rol")]
         public string Rol { get; set; } = "Usuario";
+
+        /// <summary>
+        /// Token para restablecer contraseña
+        /// </summary>
+        [BsonElement("resetPasswordToken")]
+        [BsonIgnoreIfNull]
+        public string? ResetPasswordToken { get; set; }
+
+        /// <summary>
+        /// Fecha de expiración del token de restablecimiento
+        /// </summary>
+        [BsonElement("resetPasswordExpires")]
+        [BsonIgnoreIfNull]
+        public DateTime? ResetPasswordExpires { get; set; }
     }
 
     /// <summary>

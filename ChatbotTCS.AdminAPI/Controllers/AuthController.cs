@@ -8,16 +8,13 @@ using System.Text;
 
 namespace ChatbotTCS.AdminAPI.Controllers
 {
-    /// <summary>
-    /// Controlador para autenticación de usuarios
-    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
         private readonly UsuarioService _usuarioService;
         private readonly ILogger<AuthController> _logger;
-        private readonly string _jwtSecret = "TuClaveSecretaSuperSegura"; // Cambia esto por una clave segura;
+        private readonly string _jwtSecret = "TuClaveSecretaSuperSegura";
 
         public AuthController(UsuarioService usuarioService, ILogger<AuthController> logger)
         {
@@ -25,11 +22,6 @@ namespace ChatbotTCS.AdminAPI.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Autentica a un usuario con email y contraseña
-        /// </summary>
-        /// <param name="request">Datos de login (email y contraseña)</param>
-        /// <returns>Información del usuario autenticado</returns>
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(LoginResponse))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -43,42 +35,38 @@ namespace ChatbotTCS.AdminAPI.Controllers
 
                 if (!ModelState.IsValid)
                 {
-                    _logger.LogWarning("Modelo inválido en login para email: {Email}", request.Email);
+                    _logger.LogWarning("Modelo invalido en login para email: {Email}", request.Email);
                     return BadRequest(ModelState);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
                 {
-                    _logger.LogWarning("Email o contraseña vacíos en login");
-                    return BadRequest(new { message = "Email y contraseña son requeridos" });
+                    _logger.LogWarning("Email o contraseÃ±a vacios en login");
+                    return BadRequest(new { message = "Email y contraseÃ±a son requeridos" });
                 }
 
-                // Buscar usuario por email
                 var usuario = await _usuarioService.GetByEmailAsync(request.Email);
 
                 if (usuario == null)
                 {
                     _logger.LogWarning("Usuario no encontrado para email: {Email}", request.Email);
-                    return Unauthorized(new { message = "Credenciales inválidas" });
+                    return Unauthorized(new { message = "Credenciales invalidas" });
                 }
 
                 _logger.LogInformation("Usuario encontrado: {Usuario}", usuario);
 
-                // Verificar si el usuario está activo
                 if (!usuario.Activo)
                 {
-                    _logger.LogWarning("Usuario inactivo intentó hacer login: {Email}", request.Email);
+                    _logger.LogWarning("Usuario inactivo intento hacer login: {Email}", request.Email);
                     return Unauthorized(new { message = "Usuario inactivo" });
                 }
 
-                // Verificar contraseña (comparación directa - en producción deberías usar hash)
-                if (usuario.Contraseña != request.Password)
+                if (usuario.ContraseÃ±a != request.Password)
                 {
-                    _logger.LogWarning("Contraseña incorrecta para usuario: {Email}", request.Email);
-                    return Unauthorized(new { message = "Credenciales inválidas" });
+                    _logger.LogWarning("ContraseÃ±a incorrecta para usuario: {Email}", request.Email);
+                    return Unauthorized(new { message = "Credenciales invalidas" });
                 }
 
-                // Actualizar fechas de login
                 usuario.UltimoLogin = DateTime.UtcNow;
                 if (usuario.PrimerLogin == null)
                 {
@@ -86,12 +74,10 @@ namespace ChatbotTCS.AdminAPI.Controllers
                     _logger.LogInformation("Primer login registrado para usuario: {Email}", request.Email);
                 }
 
-                // Guardar cambios
                 await _usuarioService.UpdateAsync(usuario.Id!, usuario);
 
                 _logger.LogInformation("Login exitoso para usuario: {Email}", request.Email);
 
-                // Generar token JWT
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var key = Encoding.ASCII.GetBytes(_jwtSecret);
                 var tokenDescriptor = new SecurityTokenDescriptor
@@ -107,7 +93,6 @@ namespace ChatbotTCS.AdminAPI.Controllers
                 };
                 var token = tokenHandler.CreateToken(tokenDescriptor);
 
-                // Crear respuesta
                 var response = new LoginResponse
                 {
                     Message = "Login exitoso",
@@ -137,6 +122,138 @@ namespace ChatbotTCS.AdminAPI.Controllers
             }
         }
 
-        // ...existing code...
+        [HttpPost("forgot-password")]
+        [HttpPost("/Auth/forgot-password")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ForgotPasswordResponse))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            try
+            {
+                if (request == null || string.IsNullOrWhiteSpace(request.Email))
+                {
+                    _logger.LogWarning("Solicitud de forgot-password sin email");
+                    return BadRequest(new { message = "Email es requerido" });
+                }
+
+                _logger.LogInformation("Solicitud de forgot-password para email: {Email}", request.Email);
+
+                var usuario = await _usuarioService.GetByEmailAsync(request.Email);
+
+                if (usuario == null)
+                {
+                    _logger.LogWarning("No se encontro usuario para forgot-password con email: {Email}", request.Email);
+                    return Ok(new ForgotPasswordResponse
+                    {
+                        Message = "Si el correo existe, recibiras un token de restablecimiento"
+                    });
+                }
+
+                var resetToken = GenerateSecureToken();
+
+                usuario.ResetPasswordToken = resetToken;
+                usuario.ResetPasswordExpires = DateTime.UtcNow.AddHours(1);
+                usuario.FechaActualizacion = DateTime.UtcNow;
+
+                await _usuarioService.UpdateAsync(usuario.Id!, usuario);
+
+                _logger.LogInformation("Se genero token de restablecimiento para email: {Email}, expira en 1 hora", request.Email);
+
+                return Ok(new ForgotPasswordResponse
+                {
+                    Message = "Si el correo existe, recibiras un token de restablecimiento",
+                    Token = resetToken
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error procesando forgot-password para email: {Email}", request?.Email);
+                return StatusCode(500, new { message = "Error al procesar la solicitud. Intenta nuevamente." });
+            }
+        }
+
+        [HttpPost("verify-reset-token")]
+        [HttpPost("/Auth/verify-reset-token")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> VerifyResetToken([FromBody] VerifyResetTokenRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Token))
+                {
+                    return BadRequest(new { message = "Token es requerido" });
+                }
+
+                var usuario = await _usuarioService.GetByResetTokenAsync(request.Token);
+
+                if (usuario == null || usuario.ResetPasswordExpires == null || usuario.ResetPasswordExpires < DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Token invalido o expirado" });
+                }
+
+                return Ok(new { message = "Token valido", email = usuario.Email });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando token de restablecimiento");
+                return StatusCode(500, new { message = "Error al verificar el token" });
+            }
+        }
+
+        [HttpPost("reset-password")]
+        [HttpPost("/Auth/reset-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var usuario = await _usuarioService.GetByResetTokenAsync(request.Token);
+
+                if (usuario == null)
+                {
+                    return BadRequest(new { message = "Token invalido" });
+                }
+
+                if (usuario.ResetPasswordExpires == null || usuario.ResetPasswordExpires < DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Token expirado" });
+                }
+
+                usuario.ContraseÃ±a = request.NewPassword;
+                usuario.ResetPasswordToken = null;
+                usuario.ResetPasswordExpires = null;
+                usuario.FechaActualizacion = DateTime.UtcNow;
+
+                await _usuarioService.UpdateAsync(usuario.Id!, usuario);
+
+                _logger.LogInformation("ContraseÃ±a restablecida exitosamente para usuario: {Email}", usuario.Email);
+
+                return Ok(new { message = "ContraseÃ±a restablecida exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error restableciendo contraseÃ±a");
+                return StatusCode(500, new { message = "Error al restablecer la contraseÃ±a" });
+            }
+        }
+
+        private string GenerateSecureToken()
+        {
+            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                var tokenBytes = new byte[32];
+                rng.GetBytes(tokenBytes);
+                return Convert.ToBase64String(tokenBytes).Replace("+", "-").Replace("/", "_").Replace("=", "");
+            }
+        }
     }
 }
