@@ -246,6 +246,66 @@ namespace ChatbotTCS.AdminAPI.Controllers
             }
         }
 
+        [HttpPost("change-password")]
+        [HttpPost("/Auth/change-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Modelo inválido en change-password");
+                    return BadRequest(ModelState);
+                }
+
+                _logger.LogInformation("Solicitud de cambio de contraseña para email: {Email}", request.Email);
+
+                var usuario = await _usuarioService.GetByEmailAsync(request.Email);
+
+                if (usuario == null)
+                {
+                    _logger.LogWarning("Usuario no encontrado para cambio de contraseña: {Email}", request.Email);
+                    return Unauthorized(new { message = "Credenciales inválidas" });
+                }
+
+                if (!usuario.Activo)
+                {
+                    _logger.LogWarning("Usuario inactivo intentó cambiar contraseña: {Email}", request.Email);
+                    return Unauthorized(new { message = "Usuario inactivo" });
+                }
+
+                if (usuario.Contraseña != request.CurrentPassword)
+                {
+                    _logger.LogWarning("Contraseña actual incorrecta para usuario: {Email}", request.Email);
+                    return Unauthorized(new { message = "La contraseña actual es incorrecta" });
+                }
+
+                if (request.CurrentPassword == request.NewPassword)
+                {
+                    _logger.LogWarning("La nueva contraseña es igual a la actual para usuario: {Email}", request.Email);
+                    return BadRequest(new { message = "La nueva contraseña debe ser diferente a la actual" });
+                }
+
+                usuario.Contraseña = request.NewPassword;
+                usuario.FechaActualizacion = DateTime.UtcNow;
+
+                await _usuarioService.UpdateAsync(usuario.Id!, usuario);
+
+                _logger.LogInformation("Contraseña cambiada exitosamente para usuario: {Email}", request.Email);
+
+                return Ok(new { message = "Contraseña cambiada exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cambiando contraseña para email: {Email}", request?.Email);
+                return StatusCode(500, new { message = "Error al cambiar la contraseña. Intenta nuevamente." });
+            }
+        }
+
         private string GenerateSecureToken()
         {
             using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())

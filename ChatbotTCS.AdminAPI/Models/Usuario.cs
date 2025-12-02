@@ -6,6 +6,7 @@ namespace ChatbotTCS.AdminAPI.Models
     /// <summary>
     /// Modelo para usuarios del sistema
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class Usuario
     {
         /// <summary>
